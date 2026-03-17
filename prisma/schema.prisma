@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ==================== USERS ====================
+model User {
+  id           String  @id @default(uuid())
+  clerkId      String? @unique @map("clerk_id")
+  name         String
+  lastName     String  @map("last_name")
+  email        String  @unique
+  password     String? // Nullable for OAuth users
+  phone        String?
+  role         Role    @default(USER)
+  profileImage String? @map("profile_image") @db.Text
+
+  // User configurations
+  useLocalAuthentication Boolean @default(false) @map("use_local_authentication")
+  skipWelcomeScreen      Boolean @default(false) @map("skip_welcome_screen")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rentals Rental[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  USER
+
+  @@map("role")
+}
+
+// ==================== VEHICLES ====================
+model Vehicle {
+  id           String           @id @default(uuid())
+  type         VehicleType      @default(QUADRICYCLE)
+  brand        String
+  model        String
+  year         Int
+  color        String
+  transmission TransmissionType
+  licensePlate String           @unique @map("license_plate")
+  dailyRate    Decimal          @map("daily_rate") @db.Decimal(10, 2)
+  status       VehicleStatus    @default(AVAILABLE)
+  isActive     Boolean          @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rentals Rental[]
+
+  @@map("vehicles")
+}
+
+enum VehicleType {
+  QUADRICYCLE
+  BUGGY
+  UTV
+  SUV
+}
+
+enum TransmissionType {
+  MANUAL
+  SEMI_AUTOMATIC
+  AUTOMATIC
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+// ==================== RENTALS (PEDIDOS) ====================
+model Rental {
+  id         String       @id @default(uuid())
+  userId     String       @map("user_id")
+  vehicleId  String       @map("vehicle_id")
+  startDate  DateTime     @map("start_date")
+  endDate    DateTime     @map("end_date")
+  totalPrice Decimal      @map("total_price") @db.Decimal(10, 2)
+  status     RentalStatus @default(PENDING)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("rentals")
+}
+
+enum RentalStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
