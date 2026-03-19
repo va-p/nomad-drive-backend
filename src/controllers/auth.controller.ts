@@ -11,12 +11,8 @@ import { prisma } from "../lib/prisma";
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Data is already validated by Zod middleware
     const { name, lastName, email, phone, password } = req.body;
-
-    // Validate required fields
-    if (!name || !lastName || !email || !phone || !password) {
-      throw new AppError("Name, last name, email, phone and password are required", 400);
-    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -64,7 +60,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     logger.error("Register error:", error);
-    res.status(401).json({ error: "Register error" });
+    throw error;
   }
 };
 
@@ -75,12 +71,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // Validate required fields
-    if (!email || !password) {
-      throw new AppError("Email and password are required", 400);
-    }
-
-    // Find user by email
     const user = await prisma.user.findUnique({
       where: { email },
     });
@@ -97,14 +87,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       );
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       throw new AppError("Invalid email or password", 401);
     }
 
-    // Generate JWT token
     const token = generateToken(user);
 
     logger.info(`User logged in successfully: ${user.email}`);
@@ -116,7 +104,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     logger.error("Login error:", error);
-    res.status(401).json({ error: "Unauthorized" });
+    throw error;
   }
 };
 
@@ -131,7 +119,6 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       throw new AppError("User not authenticated", 401);
     }
 
-    // Find user
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -152,7 +139,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     logger.error("Me endpoint error:", error);
-    res.status(401).json({ error: "Unauthorized" });
+    throw error;
   }
 };
 
@@ -162,23 +149,16 @@ export const me = async (req: Request, res: Response): Promise<void> => {
  */
 export const clerkSSO = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { clerk_user_id } = req.query;
+    const { clerk_user_id } = req.query as { clerk_user_id: string };
 
-    if (!clerk_user_id || typeof clerk_user_id !== "string") {
-      throw new AppError("Clerk user ID is required", 400);
-    }
-
-    // Find user by Clerk ID
     const user = await prisma.user.findUnique({
       where: { clerkId: clerk_user_id },
     });
 
     if (!user) {
-      // User doesn't exist, try to create from Clerk data
       try {
         const clerkUser = await clerkClient.users.getUser(clerk_user_id);
 
-        // Create user from Clerk data
         const newUser = await prisma.user.create({
           data: {
             clerkId: clerk_user_id,
@@ -191,7 +171,6 @@ export const clerkSSO = async (req: Request, res: Response): Promise<void> => {
           },
         });
 
-        // Generate JWT token
         const token = generateToken(newUser);
 
         logger.info(`User created from Clerk SSO: ${newUser.email}`);
@@ -216,7 +195,6 @@ export const clerkSSO = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Generate JWT token
     const token = generateToken(user);
 
     logger.info(`User logged in via Clerk SSO: ${user.email}`);
@@ -313,17 +291,13 @@ export const clerkWebhook = async (req: Request, res: Response): Promise<void> =
 export const updatePassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
-    const { currentPassword, newPassword } = req.body;
 
     if (!userId) {
       throw new AppError("User not authenticated", 401);
     }
 
-    if (!currentPassword || !newPassword) {
-      throw new AppError("Current password and new password are required", 400);
-    }
+    const { currentPassword, newPassword } = req.body;
 
-    // Find user
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -339,17 +313,14 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
       );
     }
 
-    // Verify current password
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
 
     if (!isPasswordValid) {
       throw new AppError("Current password is incorrect", 401);
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password
     await prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
@@ -374,16 +345,10 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
   try {
     const { email } = req.body;
 
-    if (!email) {
-      throw new AppError("Email is required", 400);
-    }
-
-    // Find user
     const user = await prisma.user.findUnique({
       where: { email },
     });
 
-    // Always return success to prevent email enumeration
     if (!user) {
       res.status(200).json({
         success: true,

@@ -9,22 +9,12 @@ import { prisma } from "../lib/prisma";
 export const createRental = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
-    const { vehicleId, startDate, endDate } = req.body;
 
     if (!userId) {
       throw new AppError("User not authenticated", 401);
     }
 
-    if (!vehicleId || !startDate || !endDate) {
-      throw new AppError("Vehicle ID, start date, and end date are required", 400);
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (start >= end) {
-      throw new AppError("End date must be after start date", 400);
-    }
+    const { vehicleId, startDate, endDate } = req.body;
 
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId },
@@ -40,8 +30,8 @@ export const createRental = async (req: Request, res: Response): Promise<void> =
         status: { in: ["PENDING", "ACTIVE"] },
         OR: [
           {
-            startDate: { lte: end },
-            endDate: { gte: start },
+            startDate: { lte: endDate },
+            endDate: { gte: startDate },
           },
         ],
       },
@@ -51,7 +41,7 @@ export const createRental = async (req: Request, res: Response): Promise<void> =
       throw new AppError("Vehicle is already booked for these dates", 409); // Conflict
     }
 
-    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     const dailyRate = Number(vehicle.dailyRate);
@@ -61,8 +51,8 @@ export const createRental = async (req: Request, res: Response): Promise<void> =
       data: {
         userId,
         vehicleId,
-        startDate: start,
-        endDate: end,
+        startDate,
+        endDate,
         totalPrice,
         status: "PENDING", // default status
       },
@@ -94,15 +84,6 @@ export const getUserRentals = async (req: Request, res: Response): Promise<void>
       where: { userId },
       include: {
         vehicle: true,
-        // vehicle: {
-        //   select: {
-        //     brand: true,
-        //     model: true,
-        //     year: true,
-        //     color: true,
-        //     licensePlate: true,
-        //   },
-        // },
       },
       orderBy: {
         createdAt: "desc",
@@ -122,15 +103,12 @@ export const getUserRentals = async (req: Request, res: Response): Promise<void>
 export const cancelRental = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
-    const { id } = req.params;
 
     if (!userId) {
       throw new AppError("User not authenticated", 401);
     }
 
-    if (!id || id !== typeof String) {
-      throw new AppError("Rental ID is required", 400);
-    }
+    const { id } = req.params as { id: string };
 
     const rental = await prisma.rental.findUnique({
       where: { id },

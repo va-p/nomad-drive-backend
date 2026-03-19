@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { getAuth } from '@clerk/express';
-import { verifyToken, JWTPayload } from '../utils/jwt';
-import logger from '../utils/logger';
+import { Request, Response, NextFunction } from "express";
+import { getAuth } from "@clerk/express";
+import { verifyToken, JWTPayload } from "../utils/jwt";
+import logger from "../utils/logger";
 
 // Extend Express Request type to include user
 declare global {
@@ -19,7 +19,7 @@ declare global {
 export const authenticate = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     // Try Clerk authentication first
@@ -32,8 +32,8 @@ export const authenticate = async (
       // Set user data in request for backward compatibility
       req.user = {
         userId: auth.userId,
-        email: (auth.sessionClaims?.email as string) || '',
-        role: (auth.sessionClaims?.role as string) || 'USER',
+        email: (auth.sessionClaims?.email as string) || "",
+        role: (auth.sessionClaims?.role as string) || "USER",
       };
 
       next();
@@ -46,23 +46,31 @@ export const authenticate = async (
     if (!authHeader) {
       res.status(401).json({
         success: false,
-        message: 'No authorization token provided',
+        message: "No authorization token provided",
       });
       return;
     }
 
     // Check if token format is correct (Bearer <token>)
-    const parts = authHeader.split(' ');
+    const parts = authHeader.split(" ");
 
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
       res.status(401).json({
         success: false,
-        message: 'Invalid token format. Use: Bearer <token>',
+        message: "Invalid token format. Use: Bearer <token>",
       });
       return;
     }
 
     const token = parts[1];
+
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+      });
+      return;
+    }
 
     // Verify JWT token
     try {
@@ -74,19 +82,18 @@ export const authenticate = async (
       logger.debug(`User authenticated via JWT: ${decoded.userId}`);
       next();
     } catch (error) {
-      logger.error('Token verification failed:', error);
+      logger.error("Token verification failed:", error);
       res.status(401).json({
         success: false,
-        message:
-          error instanceof Error ? error.message : 'Invalid or expired token',
+        message: error instanceof Error ? error.message : "Invalid or expired token",
       });
       return;
     }
   } catch (error) {
-    logger.error('Authentication middleware error:', error);
+    logger.error("Authentication middleware error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during authentication',
+      message: "Internal server error during authentication",
     });
   }
 };
@@ -98,7 +105,7 @@ export const authenticate = async (
 export const requireClerkAuth = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const auth = getAuth(req);
@@ -106,7 +113,7 @@ export const requireClerkAuth = async (
     if (!auth.userId) {
       res.status(401).json({
         success: false,
-        message: 'Clerk authentication required',
+        message: "Clerk authentication required",
       });
       return;
     }
@@ -114,17 +121,17 @@ export const requireClerkAuth = async (
     // Set user data for backward compatibility
     req.user = {
       userId: auth.userId,
-      email: (auth.sessionClaims?.email as string) || '',
-      role: (auth.sessionClaims?.role as string) || 'USER',
+      email: (auth.sessionClaims?.email as string) || "",
+      role: (auth.sessionClaims?.role as string) || "USER",
     };
 
     logger.debug(`Clerk user authenticated: ${auth.userId}`);
     next();
   } catch (error) {
-    logger.error('Clerk auth middleware error:', error);
+    logger.error("Clerk auth middleware error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during authentication',
+      message: "Internal server error during authentication",
     });
   }
 };
@@ -132,34 +139,30 @@ export const requireClerkAuth = async (
 /**
  * Middleware to check if user has admin role
  */
-export const requireAdmin = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        message: 'Authentication required',
+        message: "Authentication required",
       });
       return;
     }
 
-    if (req.user.role !== 'ADMIN') {
+    if (req.user.role !== "ADMIN") {
       res.status(403).json({
         success: false,
-        message: 'Admin privileges required',
+        message: "Admin privileges required",
       });
       return;
     }
 
     next();
   } catch (error) {
-    logger.error('Admin check middleware error:', error);
+    logger.error("Admin check middleware error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 };
@@ -183,10 +186,7 @@ export const getUserId = (req: Request): string | null => {
  * Allows both authenticated and unauthenticated requests
  * If authenticated, attaches user info to request
  */
-export const optionalAuth = async (
-  req: Request,
-  next: NextFunction
-): Promise<void> => {
+export const optionalAuth = async (req: Request, next: NextFunction): Promise<void> => {
   try {
     // Try Clerk authentication first
     const auth = getAuth(req);
@@ -195,8 +195,8 @@ export const optionalAuth = async (
       // User is authenticated via Clerk
       req.user = {
         userId: auth.userId,
-        email: (auth.sessionClaims?.email as string) || '',
-        role: (auth.sessionClaims?.role as string) || 'USER',
+        email: (auth.sessionClaims?.email as string) || "",
+        role: (auth.sessionClaims?.role as string) || "USER",
       };
       next();
       return;
@@ -206,19 +206,21 @@ export const optionalAuth = async (
     const authHeader = req.headers.authorization;
 
     if (authHeader) {
-      const parts = authHeader.split(' ');
+      const parts = authHeader.split(" ");
 
-      if (parts.length === 2 && parts[0] === 'Bearer') {
+      if (parts.length === 2 && parts[0] === "Bearer") {
         const token = parts[1];
 
-        try {
-          const decoded = verifyToken(token);
-          req.user = decoded;
-        } catch (error) {
-          // Invalid token, but since this is optional auth, continue without user
-          logger.debug(
-            'Optional auth: Invalid token, continuing without authentication'
-          );
+        if (token) {
+          try {
+            const decoded = verifyToken(token);
+            req.user = decoded;
+          } catch (error) {
+            // Invalid token, but since this is optional auth, continue without user
+            logger.debug(
+              "Optional auth: Invalid token, continuing without authentication",
+            );
+          }
         }
       }
     }
@@ -226,7 +228,7 @@ export const optionalAuth = async (
     // Continue whether authenticated or not
     next();
   } catch (error) {
-    logger.error('Optional auth middleware error:', error);
+    logger.error("Optional auth middleware error:", error);
     // Don't fail the request, just continue without authentication
     next();
   }

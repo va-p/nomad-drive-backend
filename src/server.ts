@@ -51,12 +51,17 @@ app.use(cors(corsOptions));
 
 const clerkPubKey = process.env.CLERK_PUBLISHABLE_KEY?.trim();
 const clerkSecretKey = process.env.CLERK_SECRET_KEY?.trim();
-app.use(
-  clerkMiddleware({
-    publishableKey: clerkPubKey?.trim(),
-    secretKey: clerkSecretKey?.trim(),
-  }),
-);
+
+if (clerkPubKey && clerkSecretKey) {
+  app.use(
+    clerkMiddleware({
+      publishableKey: clerkPubKey,
+      secretKey: clerkSecretKey,
+    }),
+  );
+} else {
+  app.use(clerkMiddleware());
+}
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
