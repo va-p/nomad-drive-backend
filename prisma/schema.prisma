@@ -33,6 +33,9 @@ model User {
   // Relations
   rentals Rental[]
 
+  @@index([email])
+  @@index([clerkId])
+  @@index([role])
   @@map("users")
 }
 
@@ -45,17 +48,18 @@ enum Role {
 
 // ==================== VEHICLES ====================
 model Vehicle {
-  id           String           @id @default(uuid())
-  type         VehicleType      @default(QUADRICYCLE)
-  brand        String
-  model        String
-  year         Int
-  color        String
-  transmission TransmissionType
-  licensePlate String           @unique @map("license_plate")
-  dailyRate    Decimal          @map("daily_rate") @db.Decimal(10, 2)
-  status       VehicleStatus    @default(AVAILABLE)
-  isActive     Boolean          @default(true) @map("is_active")
+  id                String           @id @default(uuid())
+  type              VehicleType      @default(QUADRICYCLE)
+  brand             String
+  model             String
+  year              Int
+  color             String
+  passengerCapacity Int
+  transmission      TransmissionType
+  licensePlate      String           @unique @map("license_plate")
+  dailyRate         Decimal          @map("daily_rate") @db.Decimal(10, 2)
+  status            VehicleStatus    @default(AVAILABLE)
+  isActive          Boolean          @default(true) @map("is_active")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -63,6 +67,10 @@ model Vehicle {
   // Relations
   rentals Rental[]
 
+  @@index([status])
+  @@index([type])
+  @@index([isActive])
+  @@index([status, isActive])
   @@map("vehicles")
 }
 
@@ -103,6 +111,11 @@ model Rental {
   user    User    @relation(fields: [userId], references: [id])
   vehicle Vehicle @relation(fields: [vehicleId], references: [id])
 
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([vehicleId, status, startDate, endDate])
   @@map("rentals")
 }
 
