@@ -3,6 +3,10 @@ import { Router } from "express";
 // Middlewares
 import { authenticate } from "../middlewares/auth.middleware";
 import { asyncHandler } from "../middlewares/errorHandler";
+import { validateBody, validateParams } from "../middlewares/validate";
+
+// Schemas
+import { rentalCreationSchema, rentalIdSchema } from "../schemas/rental.schema";
 
 // Controllers
 import {
@@ -18,7 +22,12 @@ const router = Router();
  * @desc    Create a new vehicle rental
  * @access  Private
  */
-router.post("/", authenticate, asyncHandler(createRental));
+router.post(
+  "/",
+  authenticate,
+  validateBody(rentalCreationSchema),
+  asyncHandler(createRental),
+);
 
 /**
  * @route   GET /api/v1/rentals/me
@@ -32,6 +41,11 @@ router.get("/me", authenticate, asyncHandler(getUserRentals));
  * @desc    Cancel a specific rental
  * @access  Private
  */
-router.put("/:id/cancel", authenticate, asyncHandler(cancelRental));
+router.put(
+  "/:id/cancel",
+  authenticate,
+  validateParams(rentalIdSchema),
+  asyncHandler(cancelRental),
+);
 
 export default router;

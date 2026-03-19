@@ -8,38 +8,29 @@ import { prisma } from "../lib/prisma";
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { type, brand, model, year, color, transmission, licensePlate, dailyRate } =
-      req.body;
+    const userId = req.user?.userId;
 
-    // Validate required fields
-    if (
-      !type ||
-      !brand ||
-      !model ||
-      !year ||
-      !color ||
-      !transmission ||
-      !licensePlate ||
-      !dailyRate
-    ) {
-      throw new AppError(
-        "Type, brand, model, year, color, transmission, licensePlate and dailyRate are required",
-        400,
-      );
+    if (!userId) {
+      throw new AppError("User not authenticated", 401);
     }
 
-    // Create vehicle
+    // Check if user is admin
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    if (user.role !== "ADMIN") {
+      throw new AppError("Only admin users can register vehicles", 403);
+    }
+
+    const vehicleData = req.body;
+
     const vehicle = await prisma.vehicle.create({
-      data: {
-        type,
-        brand,
-        model,
-        year,
-        color,
-        transmission,
-        licensePlate,
-        dailyRate,
-      },
+      data: vehicleData,
     });
 
     logger.info(
@@ -53,7 +44,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     logger.error("Register error:", error);
-    res.status(400).json({ error: "Register error" });
+    throw error;
   }
 };
 
@@ -63,18 +54,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const updateVehicle = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
-    const {
-      id,
-      type,
-      brand,
-      model,
-      year,
-      color,
-      transmission,
-      licensePlate,
-      dailyRate,
-      isActive,
-    } = req.body;
 
     if (!userId) {
       throw new AppError("User not authenticated", 401);
@@ -92,26 +71,8 @@ export const updateVehicle = async (req: Request, res: Response): Promise<void> 
       throw new AppError("Only admin users can edit vehicles", 403);
     }
 
-    // Validate required fields
-    if (
-      !id ||
-      !type ||
-      !brand ||
-      !model ||
-      !year ||
-      !color ||
-      !transmission ||
-      !licensePlate ||
-      !dailyRate ||
-      !isActive
-    ) {
-      throw new AppError(
-        "ID, type, brand, model, year, color, transmission, licensePlate, dailyRate and isActive are required",
-        400,
-      );
-    }
+    const { id, ...updateData } = req.body;
 
-    // Find vehicle
     const vehicle = await prisma.vehicle.findUnique({
       where: { id },
     });
@@ -120,30 +81,19 @@ export const updateVehicle = async (req: Request, res: Response): Promise<void> 
       throw new AppError("Vehicle not found", 404);
     }
 
-    // Update vehicle
-    await prisma.vehicle.update({
+    const updatedVehicle = await prisma.vehicle.update({
       where: { id },
-      data: {
-        type,
-        brand,
-        model,
-        year,
-        color,
-        transmission,
-        licensePlate,
-        dailyRate,
-        isActive,
-      },
+      data: updateData,
     });
 
     logger.info(
-      `Vehicle updated successfully: ${vehicle.type}, ${vehicle.brand}, ${vehicle.model}, ${vehicle.year}`,
+      `Vehicle updated successfully: ${updatedVehicle.type}, ${updatedVehicle.brand}, ${updatedVehicle.model}, ${updatedVehicle.year}`,
     );
 
     res.status(200).json({
       success: true,
       message: "Vehicle updated successfully",
-      vehicle,
+      vehicle: updatedVehicle,
     });
   } catch (error) {
     logger.error("Update vehicle error:", error);
@@ -163,7 +113,6 @@ export const getVehicles = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Fetch vehicles
     const vehicles = await prisma.vehicle.findMany({
       where: {
         isActive: true,
@@ -185,11 +134,7 @@ export const getVehicles = async (req: Request, res: Response): Promise<void> =>
  */
 export const getVehicleById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-
-    if (!id || typeof id !== "string") {
-      throw new AppError("ID is required", 400);
-    }
+    const { id } = req.params as { id: string };
 
     const vehicle = await prisma.vehicle.findUnique({
       where: { id },
@@ -212,15 +157,12 @@ export const getVehicleById = async (req: Request, res: Response): Promise<void>
 export const deleteVehicle = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
-    const { id } = req.params;
 
     if (!userId) {
       throw new AppError("User not authenticated", 401);
     }
 
-    if (!id || typeof id !== "string") {
-      throw new AppError("ID is required", 400);
-    }
+    const { id } = req.params as { id: string };
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
