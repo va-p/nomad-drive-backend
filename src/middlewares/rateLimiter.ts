@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import logger from '../utils/logger';
+import { Request, Response, NextFunction } from "express";
+import logger from "../utils/logger";
 
 interface RateLimitStore {
   [key: string]: {
@@ -11,21 +11,18 @@ interface RateLimitStore {
 const store: RateLimitStore = {};
 
 // Configuration
-const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'); // 15 minutes
-const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100');
+const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"); // 15 minutes
+const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100");
 
 /**
  * Simple in-memory rate limiter middleware
  * For production, consider using Redis or a dedicated rate limiting service
  */
-export const rateLimiter = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const rateLimiter = (req: Request, res: Response, next: NextFunction): void => {
   try {
     // Get client identifier (IP address or user ID if authenticated)
-    const identifier = req.user?.userId || req.ip || req.connection.remoteAddress || 'unknown';
+    const identifier =
+      req.user?.userId || req.ip || req.connection.remoteAddress || "unknown";
     const now = Date.now();
 
     // Initialize or get existing rate limit data
@@ -49,20 +46,26 @@ export const rateLimiter = (
 
       res.status(429).json({
         success: false,
-        message: 'Too many requests, please try again later',
+        message: "Too many requests, please try again later",
         retryAfter: resetIn,
       });
       return;
     }
 
     // Add rate limit headers
-    res.setHeader('X-RateLimit-Limit', MAX_REQUESTS.toString());
-    res.setHeader('X-RateLimit-Remaining', (MAX_REQUESTS - store[identifier].count).toString());
-    res.setHeader('X-RateLimit-Reset', new Date(store[identifier].resetTime).toISOString());
+    res.setHeader("X-RateLimit-Limit", MAX_REQUESTS.toString());
+    res.setHeader(
+      "X-RateLimit-Remaining",
+      (MAX_REQUESTS - store[identifier].count).toString(),
+    );
+    res.setHeader(
+      "X-RateLimit-Reset",
+      new Date(store[identifier].resetTime).toISOString(),
+    );
 
     next();
   } catch (error) {
-    logger.error('Rate limiter error:', error);
+    logger.error("Rate limiter error:", error);
     // Don't block request on rate limiter error
     next();
   }
@@ -76,12 +79,12 @@ setInterval(() => {
   const keysToDelete: string[] = [];
 
   for (const key in store) {
-    if (now > store[key].resetTime) {
+    if (store[key] && now > store[key].resetTime) {
       keysToDelete.push(key);
     }
   }
 
-  keysToDelete.forEach(key => delete store[key]);
+  keysToDelete.forEach((key) => delete store[key]);
 
   if (keysToDelete.length > 0) {
     logger.debug(`Cleaned up ${keysToDelete.length} expired rate limit entries`);
