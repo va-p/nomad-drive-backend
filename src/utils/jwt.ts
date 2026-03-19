@@ -21,10 +21,10 @@ export const generateToken = (user: Partial<User>): string => {
   };
 
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: JWT_EXPIRES_IN as string | number,
     issuer: "nomaddrive",
     audience: "nomaddrive-app",
-  });
+  } as jwt.SignOptions);
 };
 
 /**
@@ -74,7 +74,7 @@ export const generateRefreshToken = (user: Partial<User>): string => {
     expiresIn: "30d",
     issuer: "nomaddrive",
     audience: "nomaddrive-app-refresh",
-  });
+  } as jwt.SignOptions);
 };
 
 /**
