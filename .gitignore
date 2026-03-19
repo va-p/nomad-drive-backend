@@ -22,6 +22,21 @@ node_modules/
 dist/
 web-build/
 
+# TypeScript compiled files
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Keep essential JS files
+!jest.config.js
+!*.config.js
+!.eslintrc.js
+
+# Keep Prisma generated client
+!generated/**/*.js
+!node_modules/**/*.js
+
 # Native
 *.orig.*
 *.jks
