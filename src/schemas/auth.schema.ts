@@ -8,16 +8,21 @@ export const registerSchema = z.object({
     .string()
     .min(1, "Name is required")
     .max(50, "Name must be less than 50 characters")
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes"),
+    .regex(
+      /^[a-zA-ZÀ-ÿ\s'-]+$/,
+      "Name can only contain letters, spaces, hyphens, and apostrophes",
+    ),
   lastName: z
     .string()
     .min(1, "Last name is required")
     .max(50, "Last name must be less than 50 characters")
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Last name can only contain letters, spaces, hyphens, and apostrophes"),
+    .regex(
+      /^[a-zA-ZÀ-ÿ\s'-]+$/,
+      "Last name can only contain letters, spaces, hyphens, and apostrophes",
+    ),
   email: z
-    .string()
-    .min(1, "Email is required")
     .email("Invalid email address")
+    .min(1, "Email is required")
     .max(100, "Email must be less than 100 characters")
     .toLowerCase(),
   phone: z
@@ -39,11 +44,7 @@ export const registerSchema = z.object({
  * User login schema
  */
 export const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Invalid email address")
-    .toLowerCase(),
+  email: z.email("Invalid email address").min(1, "Email is required").toLowerCase(),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -66,11 +67,7 @@ export const updatePasswordSchema = z.object({
  * Forgot password schema
  */
 export const forgotPasswordSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Invalid email address")
-    .toLowerCase(),
+  email: z.email("Invalid email address").min(1, "Email is required").toLowerCase(),
 });
 
 /**
@@ -88,13 +85,19 @@ export const updateProfileSchema = z.object({
     .string()
     .min(1, "Name cannot be empty")
     .max(50, "Name must be less than 50 characters")
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes")
+    .regex(
+      /^[a-zA-ZÀ-ÿ\s'-]+$/,
+      "Name can only contain letters, spaces, hyphens, and apostrophes",
+    )
     .optional(),
   lastName: z
     .string()
     .min(1, "Last name cannot be empty")
     .max(50, "Last name must be less than 50 characters")
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Last name can only contain letters, spaces, hyphens, and apostrophes")
+    .regex(
+      /^[a-zA-ZÀ-ÿ\s'-]+$/,
+      "Last name can only contain letters, spaces, hyphens, and apostrophes",
+    )
     .optional(),
   phone: z
     .string()
