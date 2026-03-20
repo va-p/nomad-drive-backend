@@ -1,6 +1,6 @@
 {
   "name": "nomad-drive-backend",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Nomad Drive Backend API - TypeScript + Node.js + MariaDB",
   "author": "Vitor Azevedo Paiva",
   "main": "dist/server.js",

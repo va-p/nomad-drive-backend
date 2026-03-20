@@ -2,6 +2,71 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-03-20
+
+### 🎨 New Features
+
+#### Multi-Image Gallery for Vehicles
+
+Added comprehensive multi-image gallery support for vehicles with full CRUD operations.
+
+**Database Changes:**
+- Created new `vehicle_images` table with one-to-many relationship to vehicles
+- Added foreign key with CASCADE DELETE (deleting vehicle removes all images)
+- Added performance indexes for `vehicleId`, `isPrimary`, and `displayOrder`
+- Stores image URLs (not base64) for better performance and scalability
+
+**API Endpoints:**
+- **Modified Endpoints:**
+  - `POST /api/v1/vehicle` - Now accepts optional `images` array
+  - `PUT/PATCH /api/v1/vehicle/:id` - Supports image replacement
+  - `GET /api/v1/vehicle` - Returns vehicles with images sorted by displayOrder
+  - `GET /api/v1/vehicle/:id` - Includes images in response
+
+- **New Image-Specific Endpoints:**
+  - `POST /api/v1/vehicle/:id/images` - Add images to existing vehicle
+  - `PUT /api/v1/vehicle/:id/images/:imageId` - Update specific image
+  - `DELETE /api/v1/vehicle/:id/images/:imageId` - Delete specific image
+  - `PATCH /api/v1/vehicle/:id/images/reorder` - Reorder vehicle images
+
+**Features:**
+- Primary image designation (only one per vehicle)
+- Custom display ordering with auto-increment
+- Optional image captions (max 255 characters)
+- HTTPS URL validation
+- Duplicate URL prevention per vehicle
+- Automatic primary image assignment (first image if none specified)
+- Auto-promotion of next image when primary is deleted
+- Admin-only access for image modifications
+
+**Business Logic:**
+- Backward compatible (vehicles can exist without images)
+- Images optional during vehicle creation
+- Cascade delete ensures data integrity
+- Transaction support for reordering operations
+- Images always returned sorted by `displayOrder` ascending
+
+**Files Added:**
+- `prisma/migrations/20260320155003_add_vehicle_images/migration.sql`
+- `src/types/vehicle.types.ts` - TypeScript type definitions
+- `VEHICLE_IMAGES_GUIDE.md` - Comprehensive feature documentation
+- `VEHICLE_IMAGES_SETUP.md` - Setup and installation instructions
+
+**Files Modified:**
+- `prisma/schema.prisma` - Added VehicleImage model
+- `src/controllers/vehicle.controller.ts` - Image handling in all CRUD operations
+- `src/schemas/vehicle.schema.ts` - Image validation schemas
+- `src/routes/vehicles.routes.ts` - New image routes
+
+**Documentation:**
+- Complete API documentation with examples
+- Migration guide
+- Best practices for image URLs and storage
+- TypeScript type definitions
+- Testing checklist
+
+---
+
 ## [1.1.0] - 2026-03-19
 
 ### 🎉 Major Improvements

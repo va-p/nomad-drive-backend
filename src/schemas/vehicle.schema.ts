@@ -2,6 +2,60 @@ import { z } from "zod";
 import { VehicleType, TransmissionType, VehicleStatus } from "@prisma/client";
 
 /**
+ * Vehicle image schema for validating individual image data
+ */
+export const vehicleImageSchema = z.object({
+  imageUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .regex(/^https:\/\//, "Image URL must use HTTPS protocol"),
+  isPrimary: z.boolean().optional().default(false),
+  displayOrder: z
+    .number()
+    .int("Display order must be an integer")
+    .nonnegative("Display order must be non-negative")
+    .optional(),
+  caption: z.string().max(255, "Caption must be less than 255 characters").optional(),
+});
+
+/**
+ * Schema for updating a specific vehicle image
+ */
+export const vehicleImageUpdateSchema = z.object({
+  imageUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .regex(/^https:\/\//, "Image URL must use HTTPS protocol")
+    .optional(),
+  isPrimary: z.boolean().optional(),
+  displayOrder: z
+    .number()
+    .int("Display order must be an integer")
+    .nonnegative("Display order must be non-negative")
+    .optional(),
+  caption: z
+    .string()
+    .max(255, "Caption must be less than 255 characters")
+    .optional()
+    .nullable(),
+});
+
+/**
+ * Schema for reordering images
+ */
+export const vehicleImageReorderSchema = z.object({
+  images: z.array(
+    z.object({
+      id: z.string().uuid("Invalid image ID"),
+      displayOrder: z
+        .number()
+        .int("Display order must be an integer")
+        .nonnegative("Display order must be non-negative"),
+    }),
+  ),
+});
+
+/**
  * Vehicle registration schema
  */
 export const vehicleRegistrationSchema = z.object({
@@ -45,6 +99,29 @@ export const vehicleRegistrationSchema = z.object({
     .number()
     .positive("Daily rate must be positive")
     .max(100000, "Daily rate is too high"),
+  images: z
+    .array(vehicleImageSchema)
+    .optional()
+    .refine(
+      (images) => {
+        if (!images || images.length === 0) return true;
+        const primaryImages = images.filter((img) => img.isPrimary);
+        return primaryImages.length <= 1;
+      },
+      {
+        message: "Only one image can be marked as primary",
+      },
+    )
+    .refine(
+      (images) => {
+        if (!images || images.length === 0) return true;
+        const urls = images.map((img) => img.imageUrl);
+        return urls.length === new Set(urls).size;
+      },
+      {
+        message: "Duplicate image URLs are not allowed",
+      },
+    ),
 });
 
 /**
@@ -97,6 +174,29 @@ export const vehicleUpdateSchema = z.object({
     .optional(),
   isActive: z.boolean().optional(),
   status: z.nativeEnum(VehicleStatus).optional(),
+  images: z
+    .array(vehicleImageSchema)
+    .optional()
+    .refine(
+      (images) => {
+        if (!images || images.length === 0) return true;
+        const primaryImages = images.filter((img) => img.isPrimary);
+        return primaryImages.length <= 1;
+      },
+      {
+        message: "Only one image can be marked as primary",
+      },
+    )
+    .refine(
+      (images) => {
+        if (!images || images.length === 0) return true;
+        const urls = images.map((img) => img.imageUrl);
+        return urls.length === new Set(urls).size;
+      },
+      {
+        message: "Duplicate image URLs are not allowed",
+      },
+    ),
 });
 
 /**
@@ -127,3 +227,6 @@ export type VehicleRegistrationInput = z.infer<typeof vehicleRegistrationSchema>
 export type VehicleUpdateInput = z.infer<typeof vehicleUpdateSchema>;
 export type VehicleIdInput = z.infer<typeof vehicleIdSchema>;
 export type VehicleQueryInput = z.infer<typeof vehicleQuerySchema>;
+export type VehicleImageInput = z.infer<typeof vehicleImageSchema>;
+export type VehicleImageUpdateInput = z.infer<typeof vehicleImageUpdateSchema>;
+export type VehicleImageReorderInput = z.infer<typeof vehicleImageReorderSchema>;
