@@ -1,4 +1,6 @@
 import { Router } from "express";
+
+// Middlewares
 import { authenticate } from "../middlewares/auth.middleware";
 import { asyncHandler } from "../middlewares/errorHandler";
 

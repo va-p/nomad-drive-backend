@@ -27,7 +27,6 @@ export { prisma };
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
-// O padrão da indústria: limpo e com versionamento
 const API_PREFIX = "/api/v1";
 
 // ==================== MIDDLEWARE ====================
@@ -47,8 +46,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Clerk middleware - must come before body parsing
-// app.use(clerkMiddleware());
-
 const clerkPubKey = process.env.CLERK_PUBLISHABLE_KEY?.trim();
 const clerkSecretKey = process.env.CLERK_SECRET_KEY?.trim();
 
@@ -80,7 +77,7 @@ if (process.env.NODE_ENV === "development") {
   );
 }
 
-// Rate limiting (optional, but recommended)
+// Rate limiting
 if (process.env.NODE_ENV === "production") {
   app.use(rateLimiter);
 }

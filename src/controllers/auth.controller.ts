@@ -1,20 +1,21 @@
 import { Request, Response } from "express";
+import { prisma } from "../lib/prisma";
+
+import logger from "../utils/logger";
+import { generateToken } from "../utils/jwt";
+
+import { AppError } from "../middlewares/errorHandler";
+
 import bcrypt from "bcryptjs";
 import { clerkClient } from "@clerk/express";
-import { generateToken } from "../utils/jwt";
-import { AppError } from "../middlewares/errorHandler";
-import logger from "../utils/logger";
-import { prisma } from "../lib/prisma";
 
 /**
  * Register a new user with email and password
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Data is already validated by Zod middleware
     const { name, lastName, email, phone, password } = req.body;
 
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -23,10 +24,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       throw new AppError("User with this email already exists", 400);
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
         name,
@@ -38,7 +37,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    // Generate JWT token
     const token = generateToken(user);
 
     logger.info(`User registered successfully: ${user.email}`);

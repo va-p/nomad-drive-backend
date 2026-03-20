@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
-import { AppError } from "../middlewares/errorHandler";
-import logger from "../utils/logger";
 import { prisma } from "../lib/prisma";
+
+import logger from "../utils/logger";
+
+import { AppError } from "../middlewares/errorHandler";
 
 /**
  * Create a new vehicle rental (Booking)

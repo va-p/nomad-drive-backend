@@ -64,7 +64,7 @@ router.patch(
  * @desc    Get all active vehicles
  * @access  Private
  */
-router.get("/", getVehicles);
+router.get("/", authenticate, asyncHandler(getVehicles));
 
 /**
  * @route   GET /api/v1/vehicle/:id
