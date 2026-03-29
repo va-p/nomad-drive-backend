@@ -50,7 +50,7 @@
 
 ### Key Dependencies
 
-- **Authentication**: @clerk/express, jsonwebtoken, bcryptjs
+- **Authentication**: @clerk/express, jsonwebtoken, argon2
 - **Validation**: Zod 4.3
 - **Security**: Helmet, CORS
 - **Logging**: Winston
@@ -90,28 +90,7 @@ Edit `.env` and configure your environment variables (see [Configuration](#-conf
 
 ## ⚙️ Configuration
 
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# Server Configuration
-NODE_ENV=development
-PORT=3000
-API_BASE_URL=http://localhost:3000
-
-# Database Configuration
-DATABASE_URL="mysql://username:password@localhost:3306/nomaddrive_dev"
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRES_IN=7d
-
-# Clerk Configuration (Optional - for SSO)
-CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
-
-# CORS Configuration
-CORS_ORIGIN=http://localhost:3000,http://localhost:5173
-```
+Create a `.env` file in the root directory by following the example in the ".env.example" file.
 
 ### Environment Variables Explained
 

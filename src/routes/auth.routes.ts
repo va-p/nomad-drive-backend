@@ -1,8 +1,9 @@
 import { Router } from "express";
 
 // Middlewares
-import { authenticate } from "../middlewares/auth.middleware";
+import { authLimiter } from "../middlewares/rateLimiter";
 import { asyncHandler } from "../middlewares/errorHandler";
+import { authenticate } from "../middlewares/auth.middleware";
 import { validateBody, validateQuery } from "../middlewares/validate";
 
 // Schemas
@@ -16,7 +17,7 @@ import {
 
 // Controllers
 import {
-  register,
+  registerUser,
   login,
   me,
   clerkSSO,
@@ -32,14 +33,14 @@ const router = Router();
  * @desc    Register a new user with email and password
  * @access  Public
  */
-router.post("/register", validateBody(registerSchema), asyncHandler(register));
+router.post("/register", validateBody(registerSchema), asyncHandler(registerUser));
 
 /**
  * @route   POST /api/v1/auth/login
  * @desc    Login user with email and password
  * @access  Public
  */
-router.post("/login", validateBody(loginSchema), asyncHandler(login));
+router.post("/login", authLimiter, validateBody(loginSchema), asyncHandler(login));
 
 /**
  * @route   GET /api/v1/auth/me
@@ -81,6 +82,7 @@ router.put(
  */
 router.post(
   "/forgot-password",
+  authLimiter,
   validateBody(forgotPasswordSchema),
   asyncHandler(forgotPassword),
 );

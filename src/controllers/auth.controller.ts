@@ -6,13 +6,13 @@ import { generateToken } from "../utils/jwt";
 
 import { AppError } from "../middlewares/errorHandler";
 
-import bcrypt from "bcryptjs";
+import argon2 from "argon2";
 import { clerkClient } from "@clerk/express";
 
 /**
  * Register a new user with email and password
  */
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const registerUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, lastName, email, phone, password } = req.body;
 
@@ -24,7 +24,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       throw new AppError("User with this email already exists", 400);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await argon2.hash(password, { type: argon2.argon2id });
 
     const user = await prisma.user.create({
       data: {
@@ -85,7 +85,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       );
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await argon2.verify(user.password, password);
 
     if (!isPasswordValid) {
       throw new AppError("Invalid email or password", 401);
@@ -95,10 +95,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     logger.info(`User logged in successfully: ${user.email}`);
 
+    const { password: _, ...userWithoutPassword } = user;
+
     res.status(200).json({
       success: true,
       message: "Login successful",
       authToken: token,
+      user: userWithoutPassword,
     });
   } catch (error) {
     logger.error("Login error:", error);
@@ -301,7 +304,7 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
     });
 
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new AppError("Invalid credentials", 404);
     }
 
     if (!user.password) {
@@ -311,13 +314,13 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
       );
     }
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await argon2.verify(user.password, currentPassword);
 
     if (!isPasswordValid) {
-      throw new AppError("Current password is incorrect", 401);
+      throw new AppError("Invalid credentials", 401);
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await argon2.hash(newPassword, { type: argon2.argon2id });
 
     await prisma.user.update({
       where: { id: userId },

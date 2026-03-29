@@ -1,92 +1,156 @@
-import { Request, Response, NextFunction } from "express";
+/**
+ * Rate Limiter Middleware
+ */
+
+import { Request, Response } from "express";
+
 import logger from "../utils/logger";
 
-interface RateLimitStore {
-  [key: string]: {
-    count: number;
-    resetTime: number;
-  };
-}
+import crypto from "crypto";
+import { rateLimit } from "express-rate-limit";
 
-const store: RateLimitStore = {};
+// ─── Configuration ─────────────────────────────────────────────────────────────
 
-// Configuration
-const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"); // 15 minutes
-const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100");
+const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10); // 15 min
+const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100", 10);
+const STRICT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_STRICT_MAX || "30", 10);
+const AUTH_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_AUTH_MAX || "10", 10);
+
+// ─── IP Helper ─────────────────────────────────────────────────────────────────
 
 /**
- * Simple in-memory rate limiter middleware
- * For production, consider using Redis or a dedicated rate limiting service
+ * Extracts the real client IP from the request.
+ *
+ * - Relies on `app.set("trust proxy", 1)` in server.ts (applied in T-07) so
+ *   Express correctly resolves req.ip when behind cPanel's Apache/LiteSpeed proxy.
+ * - Strips the IPv6-mapped IPv4 prefix (::ffff:1.2.3.4 → 1.2.3.4) so that the
+ *   same physical client always produces the same key regardless of socket family.
+ * - Falls back to the raw X-Forwarded-For header when req.ip is unavailable.
  */
-export const rateLimiter = (req: Request, res: Response, next: NextFunction): void => {
-  try {
-    // Get client identifier (IP address or user ID if authenticated)
-    const identifier =
-      req.user?.userId || req.ip || req.connection.remoteAddress || "unknown";
-    const now = Date.now();
+const getClientIp = (req: Request): string => {
+  const forwarded = req.headers["x-forwarded-for"];
 
-    // Initialize or get existing rate limit data
-    if (!store[identifier] || now > store[identifier].resetTime) {
-      store[identifier] = {
-        count: 1,
-        resetTime: now + WINDOW_MS,
-      };
-      next();
-      return;
-    }
+  const raw =
+    req.ip ??
+    (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0]?.trim()) ??
+    "unknown";
 
-    // Increment request count
-    store[identifier].count++;
-
-    // Check if limit exceeded
-    if (store[identifier].count > MAX_REQUESTS) {
-      const resetIn = Math.ceil((store[identifier].resetTime - now) / 1000);
-
-      logger.warn(`Rate limit exceeded for ${identifier}`);
-
-      res.status(429).json({
-        success: false,
-        message: "Too many requests, please try again later",
-        retryAfter: resetIn,
-      });
-      return;
-    }
-
-    // Add rate limit headers
-    res.setHeader("X-RateLimit-Limit", MAX_REQUESTS.toString());
-    res.setHeader(
-      "X-RateLimit-Remaining",
-      (MAX_REQUESTS - store[identifier].count).toString(),
-    );
-    res.setHeader(
-      "X-RateLimit-Reset",
-      new Date(store[identifier].resetTime).toISOString(),
-    );
-
-    next();
-  } catch (error) {
-    logger.error("Rate limiter error:", error);
-    // Don't block request on rate limiter error
-    next();
-  }
+  return raw.replace(/^::ffff:/, "").trim();
 };
 
+// ─── Fingerprint Helper ────────────────────────────────────────────────────────
+
 /**
- * Clean up old entries periodically to prevent memory leaks
+ * Returns a device fingerprint string for the incoming request.
+ *
+ * Priority:
+ *
+ *  1. `X-Device-Fingerprint` request header (explicit, client-provided).
+ *     The frontend should generate this value using FingerprintJS (free tier)
+ *     or a stable device identifier (e.g. Expo's SecureStore UUID on mobile)
+ *     and attach it to every API request.
+ *
+ *  2. Server-derived pseudo-fingerprint (zero client-side requirement).
+ *     SHA-256 of  User-Agent | Accept-Language | Accept-Encoding,
+ *     truncated to 16 hex chars.  Not forgery-proof on its own, but it
+ *     significantly raises the cost of pure IP-rotation attacks because an
+ *     attacker must also spoof a consistent header profile on every request.
  */
-setInterval(() => {
-  const now = Date.now();
-  const keysToDelete: string[] = [];
-
-  for (const key in store) {
-    if (store[key] && now > store[key].resetTime) {
-      keysToDelete.push(key);
-    }
+const getFingerprint = (req: Request): string => {
+  const clientFp = req.headers["x-device-fingerprint"];
+  if (typeof clientFp === "string" && clientFp.length > 0) {
+    return clientFp;
   }
 
-  keysToDelete.forEach((key) => delete store[key]);
+  const components = [
+    req.headers["user-agent"] ?? "",
+    req.headers["accept-language"] ?? "",
+    req.headers["accept-encoding"] ?? "",
+  ].join("|");
 
-  if (keysToDelete.length > 0) {
-    logger.debug(`Cleaned up ${keysToDelete.length} expired rate limit entries`);
-  }
-}, 60000); // Clean up every minute
+  return crypto.createHash("sha256").update(components).digest("hex").slice(0, 16);
+};
+
+// ─── Composite Key ─────────────────────────────────────────────────────────────
+
+/**
+ * Builds the rate-limit bucket key as:  "<sanitized-ip>::<fingerprint>"
+ *
+ * Using both dimensions means an attacker must rotate their IP address AND
+ * their device fingerprint simultaneously to open a fresh bucket — a much
+ * higher bar than IP-only or user-ID-only strategies.
+ */
+const keyGenerator = (req: Request): string =>
+  `${getClientIp(req)}::${getFingerprint(req)}`;
+
+// ─── Global Limiter ────────────────────────────────────────────────────────────
+
+/**
+ * Applied to every route via `app.use(globalLimiter)` in server.ts.
+ *
+ * Budget:
+ *   - 100 req / 15 min  when X-Device-Fingerprint is present
+ *   -  30 req / 15 min  when X-Device-Fingerprint is absent (penalises
+ *                        clients that have not implemented fingerprinting)
+ *
+ * Store: express-rate-limit's built-in MemoryStore.
+ * On single-process cPanel deployments there is exactly one counter per key,
+ * so MemoryStore is both correct and operationally zero-cost.
+ */
+export const globalLimiter = rateLimit({
+  windowMs: WINDOW_MS,
+
+  limit: (req: Request) =>
+    req.headers["x-device-fingerprint"] ? MAX_REQUESTS : STRICT_MAX_REQUESTS,
+
+  keyGenerator,
+
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+
+  skip: (_req: Request) => process.env.NODE_ENV === "test",
+
+  handler: (req: Request, res: Response) => {
+    logger.warn(`[RateLimiter] Global limit exceeded — key: ${keyGenerator(req)}`);
+    res.status(429).json({
+      success: false,
+      message: "Too many requests, please try again later.",
+    });
+  },
+});
+
+// ─── Auth Limiter ──────────────────────────────────────────────────────────────
+
+/**
+ * Applied directly on POST /auth/login and POST /auth/forgot-password
+ * BEFORE validateBody (so the limit fires before JSON body parsing).
+ *
+ * Budget:
+ *   - 10 req / 15 min  regardless of fingerprint availability.
+ *     This budget is intentionally non-negotiable: credential endpoints
+ *     are the primary target of brute-force and credential-stuffing attacks,
+ *     so we do not reward fingerprint presence with a higher allowance here.
+ *
+ * The globalLimiter still runs first (mounted at the app level), so a
+ * malicious client consumes both budgets simultaneously — reaching the
+ * auth limit well before the global one.
+ */
+export const authLimiter = rateLimit({
+  windowMs: WINDOW_MS,
+  limit: AUTH_MAX_REQUESTS,
+
+  keyGenerator,
+
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+
+  skip: (_req: Request) => process.env.NODE_ENV === "test",
+
+  handler: (req: Request, res: Response) => {
+    logger.warn(`[RateLimiter] Auth limit exceeded — key: ${keyGenerator(req)}`);
+    res.status(429).json({
+      success: false,
+      message: "Too many authentication attempts, please try again later.",
+    });
+  },
+});

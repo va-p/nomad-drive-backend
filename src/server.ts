@@ -4,20 +4,20 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { clerkMiddleware } from "@clerk/express";
 
-// Import Prisma client
+// Prisma client
 import { prisma } from "./lib/prisma";
 
-// Import routes
+// Routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import vehicleRoutes from "./routes/vehicles.routes";
 
-// Import middlewares
+// Middlewares
+import { globalLimiter } from "./middlewares/rateLimiter";
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFoundHandler } from "./middlewares/notFoundHandler";
-import { rateLimiter } from "./middlewares/rateLimiter";
 
-// Import logger
+// Logger
 import logger from "./utils/logger";
 
 // Re-export Prisma client for backward compatibility
@@ -25,6 +25,8 @@ export { prisma };
 
 // Initialize Express app
 const app: Express = express();
+
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 
 const API_PREFIX = "/api/v1";
@@ -78,9 +80,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Rate limiting
-if (process.env.NODE_ENV === "production") {
-  app.use(rateLimiter);
-}
+app.use(globalLimiter);
 
 // Request logging
 app.use((req: Request, _res: Response, next: NextFunction) => {

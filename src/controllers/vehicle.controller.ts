@@ -10,7 +10,7 @@ import { VehicleImageInput } from "../schemas/vehicle.schema";
  * Register a new vehicle
  * Supports optional image gallery with automatic primary assignment
  */
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const registerVehicle = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
 
@@ -18,7 +18,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       throw new AppError("User not authenticated", 401);
     }
 
-    // Check if user is admin
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -27,19 +26,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       throw new AppError("User not found", 404);
     }
 
-    if (user.role !== "ADMIN") {
-      throw new AppError("Only admin users can register vehicles", 403);
-    }
-
     const { images, ...vehicleData } = req.body;
 
-    // Prepare image data if provided
     let imageData: VehicleImageInput[] = [];
     if (images && Array.isArray(images) && images.length > 0) {
-      // Check if any image is marked as primary
       const hasPrimary = images.some((img: VehicleImageInput) => img.isPrimary);
 
-      // Process images: set first as primary if none specified, auto-increment displayOrder
       imageData = images.map((img: VehicleImageInput, index: number) => ({
         imageUrl: img.imageUrl,
         isPrimary: hasPrimary ? img.isPrimary || false : index === 0,
@@ -48,7 +40,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       }));
     }
 
-    // Create vehicle with images in a transaction
     const vehicle = await prisma.vehicle.create({
       data: {
         ...vehicleData,
@@ -91,18 +82,6 @@ export const updateVehicle = async (req: Request, res: Response): Promise<void> 
 
     if (!userId) {
       throw new AppError("User not authenticated", 401);
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new AppError("User not found", 404);
-    }
-
-    if (user.role !== "ADMIN") {
-      throw new AppError("Only admin users can edit vehicles", 403);
     }
 
     const { id, images, ...updateData } = req.body;
@@ -216,14 +195,6 @@ export const addVehicleImages = async (req: Request, res: Response): Promise<voi
       throw new AppError("User not authenticated", 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user || user.role !== "ADMIN") {
-      throw new AppError("Only admin users can add vehicle images", 403);
-    }
-
     const { id } = req.params as { id: string };
     const { images } = req.body;
 
@@ -320,18 +291,9 @@ export const updateVehicleImage = async (req: Request, res: Response): Promise<v
       throw new AppError("User not authenticated", 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user || user.role !== "ADMIN") {
-      throw new AppError("Only admin users can update vehicle images", 403);
-    }
-
     const { id, imageId } = req.params as { id: string; imageId: string };
     const updateData = req.body;
 
-    // Verify image exists and belongs to the vehicle
     const image = await prisma.vehicleImage.findFirst({
       where: {
         id: imageId,
@@ -388,17 +350,8 @@ export const deleteVehicleImage = async (req: Request, res: Response): Promise<v
       throw new AppError("User not authenticated", 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user || user.role !== "ADMIN") {
-      throw new AppError("Only admin users can delete vehicle images", 403);
-    }
-
     const { id, imageId } = req.params as { id: string; imageId: string };
 
-    // Verify image exists and belongs to the vehicle
     const image = await prisma.vehicleImage.findFirst({
       where: {
         id: imageId,
@@ -460,14 +413,6 @@ export const reorderVehicleImages = async (
       throw new AppError("User not authenticated", 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user || user.role !== "ADMIN") {
-      throw new AppError("Only admin users can reorder vehicle images", 403);
-    }
-
     const { id } = req.params as { id: string };
     const { images } = req.body;
 
@@ -475,7 +420,6 @@ export const reorderVehicleImages = async (
       throw new AppError("Images array is required", 400);
     }
 
-    // Verify all images belong to the vehicle
     const vehicleImages = await prisma.vehicleImage.findMany({
       where: {
         vehicleId: id,
@@ -491,7 +435,6 @@ export const reorderVehicleImages = async (
       throw new AppError("One or more images do not belong to this vehicle", 400);
     }
 
-    // Update display orders in a transaction
     await prisma.$transaction(
       images.map((img: { id: string; displayOrder: number }) =>
         prisma.vehicleImage.update({
@@ -501,7 +444,6 @@ export const reorderVehicleImages = async (
       ),
     );
 
-    // Fetch updated vehicle with images
     const updatedVehicle = await prisma.vehicle.findUnique({
       where: { id },
       include: {
@@ -568,14 +510,6 @@ export const deleteVehicle = async (req: Request, res: Response): Promise<void> 
     }
 
     const { id } = req.params as { id: string };
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (user?.role !== "ADMIN") {
-      throw new AppError("Only admin users can delete vehicles", 403);
-    }
 
     const vehicleExists = await prisma.vehicle.findUnique({
       where: { id },
