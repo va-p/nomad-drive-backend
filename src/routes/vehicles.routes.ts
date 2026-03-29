@@ -2,8 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 
 // Middlewares
-import { authenticate } from "../middlewares/auth.middleware";
 import { asyncHandler } from "../middlewares/errorHandler";
+import { authenticate, requireAdmin } from "../middlewares/auth.middleware";
 import { validateBody, validateParams } from "../middlewares/validate";
 
 // Schemas
@@ -18,7 +18,7 @@ import {
 
 // Controllers
 import {
-  register,
+  registerVehicle,
   updateVehicle,
   getVehicles,
   getVehicleById,
@@ -39,20 +39,9 @@ const router = Router();
 router.post(
   "/",
   authenticate,
+  requireAdmin,
   validateBody(vehicleRegistrationSchema),
-  asyncHandler(register),
-);
-
-/**
- * @route   PUT /api/v1/vehicle/:id
- * @desc    Update vehicle
- * @access  Private
- */
-router.put(
-  "/:id",
-  authenticate,
-  validateBody(vehicleUpdateSchema),
-  asyncHandler(updateVehicle),
+  asyncHandler(registerVehicle),
 );
 
 /**
@@ -63,6 +52,7 @@ router.put(
 router.patch(
   "/:id",
   authenticate,
+  requireAdmin,
   validateBody(vehicleUpdateSchema),
   asyncHandler(updateVehicle),
 );
@@ -86,6 +76,7 @@ router.get("/", authenticate, asyncHandler(getVehicles));
 router.post(
   "/:id/images",
   authenticate,
+  requireAdmin,
   validateParams(vehicleIdSchema),
   validateBody(z.object({ images: z.array(vehicleImageSchema) })),
   asyncHandler(addVehicleImages),
@@ -99,6 +90,7 @@ router.post(
 router.patch(
   "/:id/images/reorder",
   authenticate,
+  requireAdmin,
   validateParams(vehicleIdSchema),
   validateBody(vehicleImageReorderSchema),
   asyncHandler(reorderVehicleImages),
@@ -112,6 +104,7 @@ router.patch(
 router.put(
   "/:id/images/:imageId",
   authenticate,
+  requireAdmin,
   validateBody(vehicleImageUpdateSchema),
   asyncHandler(updateVehicleImage),
 );
@@ -121,7 +114,12 @@ router.put(
  * @desc    Delete a specific vehicle image
  * @access  Private (Admin only)
  */
-router.delete("/:id/images/:imageId", authenticate, asyncHandler(deleteVehicleImage));
+router.delete(
+  "/:id/images/:imageId",
+  authenticate,
+  requireAdmin,
+  asyncHandler(deleteVehicleImage),
+);
 
 // ==================== END IMAGE ROUTES ====================
 
@@ -145,6 +143,7 @@ router.get(
 router.delete(
   "/:id",
   authenticate,
+  requireAdmin,
   validateParams(vehicleIdSchema),
   asyncHandler(deleteVehicle),
 );
