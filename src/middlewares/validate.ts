@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { ZodSchema, ZodError, ZodIssue } from "zod";
+import { z, ZodSchema, ZodError, ZodIssue } from "zod";
 import { AppError } from "./errorHandler";
 import logger from "../utils/logger";
 
@@ -14,20 +14,16 @@ type ValidationTarget = "body" | "params" | "query";
 export const validate = (schema: ZodSchema, target: ValidationTarget = "body") => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Select the target data to validate
       const dataToValidate = req[target];
 
-      // Validate the data against the schema
       const validatedData = await schema.parseAsync(dataToValidate);
 
-      // Replace the request data with validated data
       req[target] = validatedData;
 
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        // Format Zod errors into a readable format
-        const errors = error.issues.map((err: ZodIssue) => ({
+        const errors = error.issues.map((err: z.core.$ZodIssue) => ({
           field: err.path.join("."),
           message: err.message,
         }));
@@ -42,7 +38,6 @@ export const validate = (schema: ZodSchema, target: ValidationTarget = "body") =
         return;
       }
 
-      // Handle unexpected errors
       logger.error("Unexpected validation error:", error);
       next(new AppError("Validation failed", 400));
     }
@@ -76,14 +71,13 @@ export const validateMultiple = (schemas: {
     try {
       const errors: Array<{ field: string; message: string }> = [];
 
-      // Validate body if schema provided
       if (schemas.body) {
         try {
           req.body = await schemas.body.parseAsync(req.body);
         } catch (error) {
           if (error instanceof ZodError) {
             errors.push(
-              ...error.issues.map((err: ZodIssue) => ({
+              ...error.issues.map((err: z.core.$ZodIssue) => ({
                 field: `body.${err.path.join(".")}`,
                 message: err.message,
               })),
@@ -92,14 +86,13 @@ export const validateMultiple = (schemas: {
         }
       }
 
-      // Validate params if schema provided
       if (schemas.params) {
         try {
           req.params = (await schemas.params.parseAsync(req.params)) as any;
         } catch (error) {
           if (error instanceof ZodError) {
             errors.push(
-              ...error.issues.map((err: ZodIssue) => ({
+              ...error.issues.map((err: z.core.$ZodIssue) => ({
                 field: `params.${err.path.join(".")}`,
                 message: err.message,
               })),
@@ -108,14 +101,13 @@ export const validateMultiple = (schemas: {
         }
       }
 
-      // Validate query if schema provided
       if (schemas.query) {
         try {
           req.query = (await schemas.query.parseAsync(req.query)) as any;
         } catch (error) {
           if (error instanceof ZodError) {
             errors.push(
-              ...error.issues.map((err: ZodIssue) => ({
+              ...error.issues.map((err: z.core.$ZodIssue) => ({
                 field: `query.${err.path.join(".")}`,
                 message: err.message,
               })),
@@ -124,7 +116,6 @@ export const validateMultiple = (schemas: {
         }
       }
 
-      // If there are any errors, return them
       if (errors.length > 0) {
         logger.warn("Multiple validation errors:", { errors });
 

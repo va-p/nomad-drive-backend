@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { Prisma } from "@prisma/client";
-import { ZodError } from "zod";
+
 import logger from "../utils/logger";
+
+import { ZodError } from "zod";
 
 // Custom error class
 export class AppError extends Error {
