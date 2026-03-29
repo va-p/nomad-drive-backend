@@ -23,7 +23,7 @@ model User {
   role         Role    @default(USER)
   profileImage String? @map("profile_image") @db.Text
 
-  // User configurations
+  // --- User configurations ---
   useLocalAuthentication Boolean @default(false) @map("use_local_authentication")
   skipWelcomeScreen      Boolean @default(false) @map("skip_welcome_screen")
 
@@ -46,6 +46,23 @@ enum Role {
   @@map("role")
 }
 
+// ==================== OWNERS (PARTNERS/OWNERS) ====================
+model Owner {
+  id       String  @id @default(uuid())
+  name     String
+  phone    String
+  email    String?
+  document String? @unique // CPF or CNPJ
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  vehicles Vehicle[]
+
+  @@map("owners")
+}
+
 // ==================== VEHICLES ====================
 model Vehicle {
   id                String           @id @default(uuid())
@@ -54,17 +71,22 @@ model Vehicle {
   model             String
   year              Int
   color             String
+  description       String?
   passengerCapacity Int
   transmission      TransmissionType
+  has4x4            Boolean          @default(false) @map("has_4x4")
   licensePlate      String           @unique @map("license_plate")
   dailyRate         Decimal          @map("daily_rate") @db.Decimal(10, 2)
   status            VehicleStatus    @default(AVAILABLE)
   isActive          Boolean          @default(true) @map("is_active")
+  ownerId           String?          @map("owner_id")
+  blockedDaysOfWeek Json?            @map("blocked_days_of_week") // Eg: [0, 1] or ["SUNDAY"]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
+  owner   Owner?         @relation(fields: [ownerId], references: [id])
   rentals Rental[]
   images  VehicleImage[]
 
@@ -72,6 +94,7 @@ model Vehicle {
   @@index([type])
   @@index([isActive])
   @@index([status, isActive])
+  @@index([ownerId])
   @@map("vehicles")
 }
 
@@ -114,9 +137,10 @@ enum VehicleStatus {
   RENTED
   MAINTENANCE
   UNAVAILABLE
+  BLOCKED_BY_OWNER
 }
 
-// ==================== RENTALS (PEDIDOS) ====================
+// ==================== RENTALS (ORDERS) ====================
 model Rental {
   id         String       @id @default(uuid())
   userId     String       @map("user_id")
