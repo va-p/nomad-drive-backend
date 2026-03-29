@@ -4,6 +4,17 @@ import { VehicleType, TransmissionType, VehicleStatus } from "@prisma/client";
 async function main() {
   console.log("🌱 Starting vehicle seeding process...");
 
+  const localPartner = await prisma.owner.upsert({
+    where: { document: "12345678900" },
+    update: {},
+    create: {
+      name: "João Morador de Atins",
+      phone: "+5598999999999",
+      email: "joao.atins@nomaddrive.com.br",
+      document: "12345678900",
+    },
+  });
+
   const vehicles = [
     {
       type: VehicleType.QUADRICYCLE,
@@ -13,6 +24,7 @@ async function main() {
       color: "Verde",
       passengerCapacity: 2,
       transmission: TransmissionType.SEMI_AUTOMATIC,
+      has4x4: true,
       licensePlate: "ATN-0001",
       dailyRate: 450.0,
       status: VehicleStatus.AVAILABLE,
@@ -24,6 +36,12 @@ async function main() {
           isPrimary: true,
           displayOrder: 1,
         },
+        {
+          imageUrl:
+            "https://www.honda.com.br/motos/sites/hda/files/2022-08/TRX%20VERDE%204%20copy.jpg",
+          isPrimary: true,
+          displayOrder: 2,
+        },
       ],
     },
     {
@@ -34,6 +52,7 @@ async function main() {
       color: "Vermelho",
       passengerCapacity: 2,
       transmission: TransmissionType.SEMI_AUTOMATIC,
+      has4x4: true,
       licensePlate: "ATN-0002",
       dailyRate: 450.0,
       status: VehicleStatus.AVAILABLE,
@@ -45,6 +64,11 @@ async function main() {
           isPrimary: true,
           displayOrder: 1,
         },
+        {
+          imageUrl: "https://app.autoslim.com.br/uploads/motos/1771532875.jpg",
+          isPrimary: true,
+          displayOrder: 2,
+        },
       ],
     },
     {
@@ -55,6 +79,7 @@ async function main() {
       color: "Vermelho",
       passengerCapacity: 2,
       transmission: TransmissionType.SEMI_AUTOMATIC,
+      has4x4: true,
       licensePlate: "ATN-0003",
       dailyRate: 450.0,
       status: VehicleStatus.AVAILABLE,
@@ -66,6 +91,11 @@ async function main() {
           isPrimary: true,
           displayOrder: 1,
         },
+        {
+          imageUrl: "https://app.autoslim.com.br/uploads/motos/1771532875.jpg",
+          isPrimary: true,
+          displayOrder: 2,
+        },
       ],
     },
     {
@@ -76,6 +106,7 @@ async function main() {
       color: "Vermelho",
       passengerCapacity: 2,
       transmission: TransmissionType.SEMI_AUTOMATIC,
+      has4x4: true,
       licensePlate: "ATN-0004",
       dailyRate: 450.0,
       status: VehicleStatus.AVAILABLE,
@@ -87,6 +118,11 @@ async function main() {
           isPrimary: true,
           displayOrder: 1,
         },
+        {
+          imageUrl: "https://app.autoslim.com.br/uploads/motos/1771532875.jpg",
+          isPrimary: true,
+          displayOrder: 2,
+        },
       ],
     },
     {
@@ -97,6 +133,7 @@ async function main() {
       color: "Vermelho",
       passengerCapacity: 2,
       transmission: TransmissionType.SEMI_AUTOMATIC,
+      has4x4: true,
       licensePlate: "ATN-0005",
       dailyRate: 450.0,
       status: VehicleStatus.AVAILABLE,
@@ -108,6 +145,11 @@ async function main() {
           isPrimary: true,
           displayOrder: 1,
         },
+        {
+          imageUrl: "https://app.autoslim.com.br/uploads/motos/1771532875.jpg",
+          isPrimary: true,
+          displayOrder: 2,
+        },
       ],
     },
     {
@@ -118,7 +160,8 @@ async function main() {
       color: "Jet Black",
       passengerCapacity: 2,
       transmission: TransmissionType.AUTOMATIC,
-      licensePlate: "CFM-0520",
+      has4x4: true,
+      licensePlate: "ATN-005",
       dailyRate: 600.0,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
@@ -132,14 +175,45 @@ async function main() {
       ],
     },
     {
+      type: VehicleType.QUADRICYCLE,
+      brand: "CFMOTO",
+      model: "CFORCE 520L",
+      year: 2023,
+      color: "Vermelho",
+      passengerCapacity: 2,
+      transmission: TransmissionType.AUTOMATIC,
+      has4x4: true,
+      licensePlate: "ATN-006",
+      dailyRate: 600.0,
+      status: VehicleStatus.AVAILABLE,
+      isActive: true,
+      ownerId: localPartner.id,
+      blockedDaysOfWeek: [0],
+      images: [
+        {
+          imageUrl:
+            "https://valenautico.com.br/wp-content/uploads/2023/05/cforce_520L_2023_home_red-1-1.png",
+          isPrimary: true,
+          displayOrder: 1,
+        },
+        {
+          imageUrl:
+            "https://cfmotobenelux.eu/wp-content/uploads/2020/11/CFORCE-450-L_Force-Red_Left.jpg",
+          isPrimary: true,
+          displayOrder: 2,
+        },
+      ],
+    },
+    {
       type: VehicleType.UTV,
       brand: "Can-Am",
       model: "Maverick X3",
       year: 2023,
-      color: "Preto/Amarelo",
+      color: "Azul/Amarelo",
       passengerCapacity: 2,
       transmission: TransmissionType.AUTOMATIC,
-      licensePlate: "UTV-0002",
+      has4x4: true,
+      licensePlate: "ATN-007",
       dailyRate: 1500.0,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
@@ -160,7 +234,8 @@ async function main() {
       color: "Preto",
       passengerCapacity: 4,
       transmission: TransmissionType.AUTOMATIC,
-      licensePlate: "UTV-0004",
+      has4x4: true,
+      licensePlate: "ATN-008",
       dailyRate: 1800.0,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
@@ -171,6 +246,12 @@ async function main() {
           isPrimary: true,
           displayOrder: 1,
         },
+        {
+          imageUrl:
+            "https://ha-middle-east.com/cdn/shop/files/07.10.2025_14.00.38_REC.png",
+          isPrimary: true,
+          displayOrder: 2,
+        },
       ],
     },
     {
@@ -179,9 +260,10 @@ async function main() {
       model: "Defender MAX",
       year: 2024,
       color: "Verde Militar",
-      passengerCapacity: 6,
+      passengerCapacity: 2,
       transmission: TransmissionType.AUTOMATIC,
-      licensePlate: "UTV-0005",
+      has4x4: true,
+      licensePlate: "ATN-009",
       dailyRate: 2000.0,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
