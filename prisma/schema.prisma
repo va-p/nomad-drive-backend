@@ -1,14 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 // ==================== USERS ====================
@@ -21,7 +16,7 @@ model User {
   password     String? // Nullable for OAuth users
   phone        String?
   role         Role    @default(USER)
-  profileImage String? @map("profile_image") @db.Text
+  profileImage String? @map("profile_image")
 
   // --- User configurations ---
   useLocalAuthentication Boolean @default(false) @map("use_local_authentication")
@@ -76,7 +71,7 @@ model Vehicle {
   transmission      TransmissionType
   has4x4            Boolean          @default(false) @map("has_4x4")
   licensePlate      String           @unique @map("license_plate")
-  dailyRate         Decimal          @map("daily_rate") @db.Decimal(10, 2)
+  dailyRate         Decimal          @map("daily_rate")
   status            VehicleStatus    @default(AVAILABLE)
   isActive          Boolean          @default(true) @map("is_active")
   ownerId           String?          @map("owner_id")
@@ -102,10 +97,10 @@ model Vehicle {
 model VehicleImage {
   id           String  @id @default(uuid())
   vehicleId    String  @map("vehicle_id")
-  imageUrl     String  @map("image_url") @db.Text
+  imageUrl     String  @map("image_url")
   isPrimary    Boolean @default(false) @map("is_primary")
   displayOrder Int     @default(0) @map("display_order")
-  caption      String? @db.Text
+  caption      String?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -147,7 +142,7 @@ model Rental {
   vehicleId  String       @map("vehicle_id")
   startDate  DateTime     @map("start_date")
   endDate    DateTime     @map("end_date")
-  totalPrice Decimal      @map("total_price") @db.Decimal(10, 2)
+  totalPrice Decimal      @map("total_price")
   status     RentalStatus @default(PENDING)
 
   createdAt DateTime @default(now()) @map("created_at")
