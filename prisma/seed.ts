@@ -26,7 +26,7 @@ async function main() {
       transmission: TransmissionType.SEMI_AUTOMATIC,
       has4x4: true,
       licensePlate: "ATN-0001",
-      dailyRate: 450.0,
+      dailyRate: 600,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
       images: [
@@ -54,7 +54,7 @@ async function main() {
       transmission: TransmissionType.SEMI_AUTOMATIC,
       has4x4: true,
       licensePlate: "ATN-0002",
-      dailyRate: 450.0,
+      dailyRate: 600,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
       images: [
@@ -81,7 +81,7 @@ async function main() {
       transmission: TransmissionType.SEMI_AUTOMATIC,
       has4x4: true,
       licensePlate: "ATN-0003",
-      dailyRate: 450.0,
+      dailyRate: 600,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
       images: [
@@ -108,7 +108,7 @@ async function main() {
       transmission: TransmissionType.SEMI_AUTOMATIC,
       has4x4: true,
       licensePlate: "ATN-0004",
-      dailyRate: 450.0,
+      dailyRate: 600,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
       images: [
@@ -135,7 +135,7 @@ async function main() {
       transmission: TransmissionType.SEMI_AUTOMATIC,
       has4x4: true,
       licensePlate: "ATN-0005",
-      dailyRate: 450.0,
+      dailyRate: 600,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
       images: [
@@ -162,7 +162,7 @@ async function main() {
       transmission: TransmissionType.AUTOMATIC,
       has4x4: true,
       licensePlate: "ATN-005",
-      dailyRate: 600.0,
+      dailyRate: 750,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
       images: [
@@ -184,7 +184,7 @@ async function main() {
       transmission: TransmissionType.AUTOMATIC,
       has4x4: true,
       licensePlate: "ATN-006",
-      dailyRate: 600.0,
+      dailyRate: 750,
       status: VehicleStatus.AVAILABLE,
       isActive: true,
       ownerId: localPartner.id,
